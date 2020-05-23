@@ -1,18 +1,27 @@
 import React , { useEffect , useState } from 'react';
-import Card from 'react-bootstrap/Card';
+import Card, { CardTitle, CardText } from 'react-bootstrap/Card';
 import CardDeck from 'react-bootstrap/CardDeck';
+import Columns from 'react-columns'
+import Form from "react-bootstrap/Form";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import CardColumns from "react-bootstrap/CardColumns";
 import axios from "axios";
 
 
 function App() {
-  const [latest, setLatest] = useState("");
+  const [latest, setLatest] = useState([]);
+  const [results, SetResults] = useState([]);
+  const [searchCountries, SetSearchCountries] = useState([]);
 
   useEffect(() => {
     axios
-      .get("https://corona.lmao.ninja/v2/all")
-      .then(res => {
-        setLatest(res.data);
+      .all([
+        axios.get("https://corona.lmao.ninja/v2/all"),
+        axios.get("https://corona.lmao.ninja/v2/countries")
+      ])
+      .then(responseArr => {
+        setLatest(responseArr[0].data);
+        SetResults(responseArr[1].data);
     })
       .catch(err => {
         console.log(err);
@@ -22,8 +31,44 @@ function App() {
   const date = new Date(parseInt(latest.updated));
   const lastUpdated = date.toString();
 
+  const filterCountries = results.filter(item => {
+    return searchCountries !== "" ? item.country.includes(searchCountries) : item;
+  });
+
+  const countries = filterCountries.map((data, i) => {
+    return (
+      <Card
+      key={i}
+      bg="light"
+      text="dark"
+      className="text-center"
+      style={{ margin : "10px"}}
+      >
+    <Card.Img variant="top" src={data.countryInfo.flag} />
+      <Card.Body>
+    <Card.Title>{data.country}</Card.Title>
+    <Card.Text>Cases {data.cases}</Card.Text>
+    <Card.Text>Deaths {data.deaths}</Card.Text>
+    <Card.Text>Recoverd {data.recovered}</Card.Text>
+    <Card.Text>Today Cases {data.todayCases}</Card.Text>
+    <Card.Text>Today Deaths {data.todayDeaths}</Card.Text>
+        </Card.Body>
+      </Card>
+    );
+  });
+
+
+
+  var queries = [{
+    columns: 2,
+    query: 'min-width: 500px'
+  }, {
+    columns: 3,
+    query: 'min-width: 1000px'
+  }];
+
   return (
-    <div className="App">
+    <div>
     <CardDeck>
     <Card bg="secondary" text="white" className="text-center" style={{margin: "10px"}}>
       <Card.Body>
@@ -58,7 +103,22 @@ function App() {
         <small>Last updated {lastUpdated}</small>
       </Card.Footer>
     </Card>
-  </CardDeck></div>
+  </CardDeck>
+
+  <Form>
+  <Form.Group controlId="formGroupSearch">
+    <Form.Control
+    type="text"
+    placeholder="Type Name a Country"
+    onChange= {e => SetSearchCountries(e.target.value)}
+    />
+  </Form.Group>
+</Form>
+
+  <Columns queries={queries}> 
+    {countries}
+  </Columns>
+  </div>
   );
 }
 
